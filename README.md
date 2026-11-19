@@ -42,7 +42,7 @@ npm run preview
 
 `vite.config.js` 的 `base: '/json-workbench/'` 全面用于构建资源、Worker 与可选收款码路径。使用固定 hash 路由（`#compare`/`#redact`/`#types`/`#utilities`），不要求 history fallback，刷新子功能不应 404。
 
-1. 仓库为 `QIJINWEI/json-workbench`、默认分支 `main`（由所有者创建/授权；本代码包不自行建仓）。
+1. 仓库为 `mininicerrrr/json-workbench`、默认分支 `main`（由所有者创建/授权；本代码包不自行建仓）。
 2. Settings → Pages → Source 选择 **GitHub Actions**。
 3. 推送源码，包含 `.github/workflows/pages.yml`、`package-lock.json`；不要推送 node_modules、dist、凭据或个人环境文件。
 4. Actions 执行 npm ci → 测试 → 构建 → upload-pages-artifact → deploy-pages；PR 只测试构建、不部署。部署 job 需要 `pages: write` 和 `id-token: write`，环境为 `github-pages`，必要时由所有者允许 main 部署。
