@@ -1,0 +1,1 @@
+Personal payment image supplied by the owner for this specific public deployment. NOT MIT licensed. Do not reuse in forks or impersonate the owner. This public image is not an API secret. See ASSETS-LICENSE.md.
