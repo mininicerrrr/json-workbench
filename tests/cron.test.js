@@ -46,12 +46,28 @@ test('Asia/Shanghai local labels for 09:00 job', () => {
   assert.match(r.runs[0].local, /^2024-01-01 09:00:00$/);
 });
 
-test('America/New_York across DST spring — runs remain ordered local midnights', () => {
-  const r = nextRuns('0 0 * * *', 'America/New_York', 5, fromUtc('2024-03-08T05:00:00Z'));
-  const days = r.runs.map(x => x.local.slice(0, 10));
-  assert.ok(days.includes('2024-03-09'));
-  assert.ok(days.includes('2024-03-10'));
-  assert.ok(days.includes('2024-03-11'));
+test('America/New_York spring gap: 30 2 * * * skips nonexistent Mar 10 02:30', () => {
+  const r = nextRuns('30 2 * * *', 'America/New_York', 3, fromUtc('2024-03-08T12:00:00Z'));
+  assert.deepEqual(
+    r.runs.map(x => ({local: x.local, at: new Date(x.at).toISOString()})),
+    [
+      {local: '2024-03-09 02:30:00', at: '2024-03-09T07:30:00.000Z'},
+      {local: '2024-03-11 02:30:00', at: '2024-03-11T06:30:00.000Z'},
+      {local: '2024-03-12 02:30:00', at: '2024-03-12T06:30:00.000Z'},
+    ],
+  );
+  assert.ok(!r.runs.some(x => x.local.startsWith('2024-03-10 02:30')));
+});
+
+test('America/New_York fall fold: 30 1 * * * yields two UTC instants for same local Nov 3 01:30', () => {
+  const r = nextRuns('30 1 * * *', 'America/New_York', 3, fromUtc('2024-11-02T12:00:00Z'));
+  const fold = r.runs.filter(x => x.local === '2024-11-03 01:30:00');
+  assert.equal(fold.length, 2);
+  assert.deepEqual(
+    fold.map(x => new Date(x.at).toISOString()).sort(),
+    ['2024-11-03T05:30:00.000Z', '2024-11-03T06:30:00.000Z'],
+  );
+  assert.equal(r.runs[2].local, '2024-11-04 01:30:00');
 });
 
 test('leap day Feb 29 matches in leap year', () => {

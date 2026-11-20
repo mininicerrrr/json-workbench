@@ -2,7 +2,8 @@
 
 **Baseline SHA:** `9691cbe026a7a42a9cde0ba08334c2e844cba908`
 
-**Tested code Head:** `f526c2f57a4ba8e45c34e8188806e361bd56d0f0` (run commands after checking out this commit).
+**Functional test anchor:** `f526c2f57a4ba8e45c34e8188806e361bd56d0f0` — screenshots below remain valid for unchanged UI pixels (head after DST/privacy/regex-test commits does not reshoot).
+**Evidence doc revision:** same PR branch tip at last evidence edit (see git log; no separate docs-only anchor commits).
 
 ## Commands and results (local agent run)
 
@@ -45,14 +46,16 @@ Paths under `/opt/cursor/artifacts/` on the agent VM (not deployed).
 - DOM/DOW **OR** when both fields are constrained (not `*`/`?`).
 - `?` wildcard on DOM or DOW supported.
 - Feb 30/31 with month `2` rejected at parse (`不可满足`).
-- DST **spring gap** for timestamps: `America/New_York` 02:30 on spring-forward day rejected in `timestamp.js`.
-- Cron preview uses **minute resolution** in zone; ambiguous **folded** local hour during fall-back is not expanded to multiple occurrences (documented limitation).
+- DST **spring gap** (timestamp): `America/New_York` 02:30 on spring-forward day rejected in `timestamp.js`.
+- DST **spring gap** (cron): `30 2 * * *` — Mar 10 2024 02:30 NY **absent**; Mar 9 `07:30Z` then Mar 11 `06:30Z`.
+- DST **fall fold** (cron): `30 1 * * *` — Nov 3 2024 shows **two** rows, same `local`, `at` `05:30Z` and `06:30Z`.
 
 ## Privacy / regex instrumentation
 
 - `html[data-active-tool]` per route.
 - `html[data-regex-worker-generation]` / `data-regex-worker-phase` (`running` / `terminated` / `idle`).
-- Regex Worker posts `lifecycle: started` before work (main thread ignores for output).
+- Regex: Playwright `worker-init.js` hooks native `Worker` construct/`terminate`; plus `data-regex-worker-*`.
+- Privacy: no in-app Share UI — only address-bar `location` + `#hash` and canonical `<link>`; copy uses `#copy`. Tests enforce GET allowlist on static/worker assets only.
 
 ## Known limitations
 

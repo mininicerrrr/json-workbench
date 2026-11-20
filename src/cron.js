@@ -6,7 +6,9 @@ const FIELD_NAMES = ['minute', 'hour', 'day-of-month', 'month', 'day-of-week'];
 export const CRON_SEMANTICS = `五字段顺序：分 时 日 月 周（0-59 0-23 1-31 1-12 0-7，周 0/7=周日）。
 支持 *、?（仅日/周）、,、-、/ 与数字。不支持名称（MON）与 L/W/#。
 日与日/周：若二者均非 * / ?，采用“或”语义——任一字段匹配即可（常见 crontab 约定）。
-预览在指定 IANA 时区下的本地墙上时钟计算，跨 DST 时以实际偏移为准。`;
+预览按 IANA 时区墙上时钟匹配，每分钟步进 UTC 时间轴：
+· 夏令时「跳时」：不存在的本地时刻不会出现（如 America/New_York 春季 02:30 当日被跳过）。
+· 夏令时「折时」：同一本地标签可能在折叠夜出现两次，对应不同 UTC 时刻（各输出一行，local 相同、at 不同）。`;
 
 function parseField(part, min, max, allowQ) {
   const t = part.trim();
