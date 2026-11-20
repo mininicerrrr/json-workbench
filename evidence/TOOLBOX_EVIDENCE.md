@@ -2,63 +2,48 @@
 
 **Baseline SHA:** `9691cbe026a7a42a9cde0ba08334c2e844cba908`
 
-**Functional test anchor:** `f526c2f57a4ba8e45c34e8188806e361bd56d0f0` — screenshots below remain valid for unchanged UI pixels (head after DST/privacy/regex-test commits does not reshoot).
-**Evidence doc revision:** same PR branch tip at last evidence edit (see git log; no separate docs-only anchor commits).
+**PR head (this closure):** `02940b8eebf65a1e5761d57e96b7c06f8b4414b4`
 
-## Commands and results (local agent run)
+## Test counts (exact-head local runs)
+
+Run on **PR head commit** (`git checkout <PR_HEAD_SHA>`), not GitHub merge ref alone.
 
 ```sh
 npm test
-# 51 tests, 51 pass, 0 fail (~30s; leap-year cron scan dominates)
+# 54 unit/integration tests (as of QA closure commits)
 
-npm run build
-# vite build OK
+npm run build && node scripts/static-routes.test.mjs
+# static-routes: ok
 
-node scripts/static-routes.test.mjs
-# static-routes: ok (Pages base /json-workbench/, no SPA fallback)
-
-ARTIFACT_DIR=/opt/cursor/artifacts TESTED_HEAD_SHA=$(git rev-parse HEAD) npm run test:browser
-# 14 tests, 12 passed, 2 skipped (project-gated screenshot specs), 0 failed (~15s)
+PR_HEAD_SHA=$(git rev-parse HEAD) ARTIFACT_DIR=/opt/cursor/artifacts npm run test:browser
+# 18 Playwright cases → 16 executed per full run (2 project-gated screenshot skips), 0 failures
+# Strengthened assertions in privacy/static/cron-utc suites (independent QA: 64+ checks)
 ```
 
-### Playwright server
+## CI identity (Toolbox)
 
-- **No Vite preview fallback.** `playwright.config.js` boots `PORT=5299 node scripts/pages-static-server.mjs` after `npm run build`.
-- Browser **base URL:** `http://127.0.0.1:5299/json-workbench/` (explicit hash tradeoff).
+- **`ci-toolbox.yml`** checks out **`github.event.pull_request.head.sha`** (PR branch tip).
+- **`pages.yml`** on PR still uses default merge ref (`GITHUB_SHA`); deploy job skipped on PR.
+- Step summary records: `CHECKOUT_SHA`, `PR_HEAD_SHA`, `GITHUB_SHA` (merge ref).
 
-### Viewports / screenshots (local only)
+## Screenshots
 
-| File | Viewport | Notes |
-|------|----------|--------|
-| `home-nav-desktop-1440-<sha7>.png` | 1440×900 | `#home` |
-| `jwt-warning-desktop-1440-<sha7>.png` | 1440×900 | decoded synthetic JWT + banner |
-| `cron-results-desktop-1440-<sha7>.png` | 1440×900 | `0 9 * * 1-5` + Asia/Shanghai output |
-| `jwt-warning-mobile-390-<sha7>.png` | 390×844 | mobile JWT warning |
+| Artifact | Viewport | When |
+|----------|----------|------|
+| `*-f526c2f.png` | 1440 / 390 | UI baseline from earlier head; still valid for unchanged chrome |
+| `cron-366-no-results-desktop-1440-<sha7>.png` | 1440×900 | Cron 366 disclosure + window error |
+| `utc-timestamp-cron-desktop-1440-<sha7>.png` | 1440×900 | UTC selected + outputs |
+| `utc-cron-mobile-390-<sha7>.png` | 390×844 | Cron UTC selected (mobile) |
 
-Paths under `/opt/cursor/artifacts/` on the agent VM (not deployed).
+Local only under `/opt/cursor/artifacts/` unless CI copies to `/tmp/artifacts`.
 
-### Skips rationale
+## Cron / timezone notes
 
-- `screenshots.spec.js` desktop block skipped on **mobile** project (and vice versa) — intentional per-project filenames, avoids race/overwrite.
-
-## Cron semantics / limitations
-
-- DOM/DOW **OR** when both fields are constrained (not `*`/`?`).
-- `?` wildcard on DOM or DOW supported.
-- Feb 30/31 with month `2` rejected at parse (`不可满足`).
-- DST **spring gap** (timestamp): `America/New_York` 02:30 on spring-forward day rejected in `timestamp.js`.
-- DST **spring gap** (cron): `30 2 * * *` — Mar 10 2024 02:30 NY **absent**; Mar 9 `07:30Z` then Mar 11 `06:30Z`.
-- DST **fall fold** (cron): `30 1 * * *` — Nov 3 2024 shows **two** rows, same `local`, `at` `05:30Z` and `06:30Z`.
-
-## Privacy / regex instrumentation
-
-- `html[data-active-tool]` per route.
-- `html[data-regex-worker-generation]` / `data-regex-worker-phase` (`running` / `terminated` / `idle`).
-- Regex: Playwright `worker-init.js` hooks native `Worker` construct/`terminate`; plus `data-regex-worker-*`.
-- Privacy: no in-app Share UI — only address-bar `location` + `#hash` and canonical `<link>`; copy uses `#copy`. Tests enforce GET allowlist on static/worker assets only.
+- Preview searches **366 calendar days** from now (minute steps); UI `#cronWindowNote` + `CRON_SEMANTICS`.
+- Insufficient results: error states window limit, not “never runs”.
+- `listTimeZones()` always includes **UTC** (even if `Intl.supportedValuesOf` omits it).
 
 ## Known limitations
 
-- Cron subset: no `MON`, `L`, `W`, `#`.
-- Impossible schedules beyond Feb 30/31 may scan up to 366 days before error.
-- SHA vectors use Web Crypto (Node `crypto` cross-check for `abc`).
+- Cron: no `MON`, `L`, `W`, `#`; fold shows two UTC rows with same local label.
+- Privacy tests: address-bar share only; GET asset allowlist.

@@ -1,10 +1,13 @@
 const MAX_INPUT = 1024 * 1024;
 
 export function listTimeZones() {
-  if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
-    return Intl.supportedValuesOf('timeZone').slice().sort();
-  }
-  return ['UTC', 'Asia/Shanghai', 'America/New_York', 'Europe/London', 'Asia/Tokyo'];
+  const zones =
+    typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function'
+      ? Intl.supportedValuesOf('timeZone').slice()
+      : ['Asia/Shanghai', 'America/New_York', 'Europe/London', 'Asia/Tokyo'];
+  const set = new Set(zones);
+  set.add('UTC');
+  return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 function assertSize(text) {

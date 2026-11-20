@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fromEpoch, localToEpoch} from '../src/timestamp.js';
+import {fromEpoch, localToEpoch, listTimeZones} from '../src/timestamp.js';
 
 test('epoch with IANA zone', () => {
   assert.match(fromEpoch('0', 's', 'UTC'), /1970-01-01/);
@@ -30,4 +30,10 @@ test('DST spring-forward gap in New York is rejected', () => {
 
 test('millisecond vs second output units', () => {
   assert.match(fromEpoch('1000', 'ms', 'UTC'), /秒时间戳\n1\n/);
+});
+
+test('listTimeZones always includes UTC once', () => {
+  const z = listTimeZones();
+  assert.equal(z.filter(x => x === 'UTC').length, 1);
+  assert.match(fromEpoch('0', 's', 'UTC'), /UTC/);
 });

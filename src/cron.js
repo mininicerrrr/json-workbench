@@ -1,5 +1,6 @@
 const MAX_CRON_LEN = 256;
 const MAX_PREVIEW = 20;
+export const CRON_SEARCH_DAYS = 366;
 
 const FIELD_NAMES = ['minute', 'hour', 'day-of-month', 'month', 'day-of-week'];
 
@@ -8,7 +9,8 @@ export const CRON_SEMANTICS = `五字段顺序：分 时 日 月 周（0-59 0-23
 日与日/周：若二者均非 * / ?，采用“或”语义——任一字段匹配即可（常见 crontab 约定）。
 预览按 IANA 时区墙上时钟匹配，每分钟步进 UTC 时间轴：
 · 夏令时「跳时」：不存在的本地时刻不会出现（如 America/New_York 春季 02:30 当日被跳过）。
-· 夏令时「折时」：同一本地标签可能在折叠夜出现两次，对应不同 UTC 时刻（各输出一行，local 相同、at 不同）。`;
+· 夏令时「折时」：同一本地标签可能在折叠夜出现两次，对应不同 UTC 时刻（各输出一行，local 相同、at 不同）。
+下次运行预览从当前时刻起最多搜索 ${CRON_SEARCH_DAYS} 个日历日（按分钟步进）；窗口内找不到足够次数不代表表达式永不运行。`;
 
 function parseField(part, min, max, allowQ) {
   const t = part.trim();
@@ -111,7 +113,7 @@ export function nextRuns(expression, timeZone, count = 5, fromMs = Date.now()) {
   const parsed = parseCron(expression);
   const out = [];
   let t = Math.floor(fromMs / 60000) * 60000 + 60000;
-  const limit = t + 366 * 24 * 60 * 60000;
+  const limit = t + CRON_SEARCH_DAYS * 24 * 60 * 60000;
   while (out.length < count && t < limit) {
     const parts = partsInZone(new Date(t), tz);
     if (matchesCron(parsed, parts)) {
@@ -119,6 +121,10 @@ export function nextRuns(expression, timeZone, count = 5, fromMs = Date.now()) {
     }
     t += 60000;
   }
-  if (out.length < count) throw new Error('在搜索窗口内未找到足够次数；请放宽表达式。');
-  return {semantics: CRON_SEMANTICS, explain: parsed.explain, runs: out};
+  if (out.length < count) {
+    throw new Error(
+      `在自此刻起最多 ${CRON_SEARCH_DAYS} 天的预览窗口内未找到足够的运行时刻（已找到 ${out.length}/${count} 次）。这不表示表达式永不运行。`,
+    );
+  }
+  return {semantics: CRON_SEMANTICS, explain: parsed.explain, runs: out, searchDays: CRON_SEARCH_DAYS};
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseCron, nextRuns} from '../src/cron.js';
+import {parseCron, nextRuns, CRON_SEARCH_DAYS, CRON_SEMANTICS} from '../src/cron.js';
 
 const fromUtc = (iso) => Date.parse(iso);
 
@@ -89,4 +89,12 @@ test('documented OR flags for combined DOM/DOW', () => {
   const p = parseCron('0 0 15 * 1');
   assert.equal(p.domAny, false);
   assert.equal(p.dowAny, false);
+});
+
+test('semantics and errors mention 366-day preview window', () => {
+  assert.match(CRON_SEMANTICS, new RegExp(`${CRON_SEARCH_DAYS}.*日历日`));
+  assert.throws(
+    () => nextRuns('0 0 29 2 *', 'UTC', 5, fromUtc('2024-03-01T00:00:00Z')),
+    new RegExp(`${CRON_SEARCH_DAYS}.*天.*预览窗口`),
+  );
 });

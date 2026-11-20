@@ -101,7 +101,7 @@
         <div id="homeCategories" class="home-grid"></div>
       </section>
       <section class="panel tool-panel" id="panelTimestamp" hidden>
-        <div class="heading"><div><span class="eyebrow">TIME</span><h2>时间戳与时区</h2><p>单位（秒/毫秒）与时区显式选择；无效日期与 DST 跳时会报错。</p></div></div>
+        <div class="heading"><div><span class="eyebrow">TIME</span><h2>时间戳与时区</h2><p>单位（秒/毫秒）与 IANA 时区（含 UTC）显式选择；无效日期与 DST 跳时会报错。</p></div></div>
         <label for="tsInput">时间戳或文本</label>
         <textarea id="tsInput" spellcheck="false" placeholder="1704067200"></textarea>
         <div class="utility-buttons">
@@ -150,6 +150,7 @@
       </section>
       <section class="panel tool-panel" id="panelCron" hidden>
         <div class="heading"><div><span class="eyebrow">CRON</span><h2>Cron 解释与下次运行</h2><p>五字段 Unix 风格；日时/周字段的“或”语义见下方说明。</p></div></div>
+        <p id="cronWindowNote" class="hint-inline cron-window-note">下次运行预览从当前时刻起，<strong>最多搜索未来 366 个日历日</strong>。窗口内找不到足够次数不等于表达式永不运行。</p>
         <label for="cronExpr">表达式</label>
         <input id="cronExpr" type="text" spellcheck="false" placeholder="0 9 * * 1-5" autocomplete="off">
         <div class="utility-buttons">
