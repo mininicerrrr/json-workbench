@@ -5,7 +5,7 @@ import {SUPPORT_IMAGE} from './support-config.js';
 import {TOOLS, TOOL_MAP, CATEGORIES, toolsForSearch} from './tools-registry.js';
 import {decodeJwt} from './jwt.js';
 import {fromEpoch, localToEpoch, listTimeZones} from './timestamp.js';
-import {nextRuns, CRON_SEMANTICS} from './cron.js';
+import {CRON_SEARCH_DAYS} from './cron.js';
 import {digestText, uuidV4, validateUuid} from './hash.js';
 
 const $ = id => document.getElementById(id);
@@ -16,6 +16,8 @@ let mode = 'compare';
 let worker = null;
 let regexWorker = null;
 let regexWorkerGeneration = 0;
+let cronWorker = null;
+let cronActiveId = 0;
 let timer = null;
 let regexTimer = null;
 let nextId = 0;
@@ -69,6 +71,31 @@ function stop() {
   busy(false);
 }
 
+function stopCron(outcome = 'idle') {
+  if (cronWorker) {
+    cronWorker.terminate();
+    cronWorker = null;
+    document.documentElement.dataset.cronWorkerPhase = outcome === 'idle' ? 'idle' : 'terminated';
+  } else if (outcome !== 'idle') {
+    document.documentElement.dataset.cronWorkerPhase = outcome;
+  } else {
+    document.documentElement.dataset.cronWorkerPhase = 'idle';
+  }
+  $('cronRun').disabled = false;
+  $('cronCancel').hidden = true;
+}
+
+function formatCronOutput(r) {
+  return [
+    r.semantics,
+    '',
+    '字段：',
+    r.explain,
+    '',
+    ...r.runs.map((x, i) => `${i + 1}. ${x.local} (${x.timeZone})`),
+  ].join('\n');
+}
+
 function stopRegex(outcome = 'idle') {
   if (regexWorker) {
     regexWorker.terminate();
@@ -119,6 +146,7 @@ function route() {
   if (resolved !== mode) {
     stop();
     stopRegex();
+    stopCron();
     resetResult();
   }
   mode = resolved;
@@ -491,22 +519,47 @@ $('jwtDecode').onclick = () => {
   }
 };
 
-$('cronRun').onclick = () => {
+function runCronJob() {
+  stopCron();
+  const count = Number($('cronCount').value);
+  const expression = $('cronExpr').value;
+  const timeZone = $('cronZone').value;
+  $('cronRun').disabled = true;
+  $('cronCancel').hidden = false;
+  subStatus('statusCron', `正在 Worker 中搜索（最多 ${CRON_SEARCH_DAYS} 天）… 可随时取消。`);
+  document.documentElement.dataset.cronWorkerPhase = 'running';
   try {
-    const count = Number($('cronCount').value);
-    const r = nextRuns($('cronExpr').value, $('cronZone').value, count);
-    $('outputCron').value = [
-      r.semantics,
-      '',
-      '字段：',
-      r.explain,
-      '',
-      ...r.runs.map((x, i) => `${i + 1}. ${x.local} (${x.timeZone})`),
-    ].join('\n');
-    subStatus('statusCron', `已生成 ${r.runs.length} 次预览。`, 'success');
+    cronWorker = new Worker(new URL('./cron-worker.js', import.meta.url), {type: 'module'});
+    const id = ++cronActiveId;
+    cronWorker.onmessage = e => {
+      if (e.data.id !== id) return;
+      if (e.data.lifecycle === 'started') return;
+      stopCron('idle');
+      if (e.data.error) {
+        subStatus('statusCron', e.data.error, 'error');
+        $('outputCron').value = '';
+        return;
+      }
+      const r = e.data.result;
+      $('outputCron').value = formatCronOutput(r);
+      subStatus('statusCron', `已生成 ${r.runs.length} 次预览（${CRON_SEARCH_DAYS} 天窗口内）。`, 'success');
+    };
+    cronWorker.onerror = () => {
+      stopCron('terminated');
+      subStatus('statusCron', 'Cron Worker 错误。', 'error');
+    };
+    cronWorker.postMessage({id, expression, timeZone, count, fromMs: Date.now()});
   } catch (e) {
+    stopCron('terminated');
     subStatus('statusCron', e.message, 'error');
   }
+}
+
+$('cronRun').onclick = runCronJob;
+$('cronCancel').onclick = () => {
+  stopCron('terminated');
+  subStatus('statusCron', '搜索已取消；可立即重新运行。');
+  $('outputCron').value = '';
 };
 
 document.querySelectorAll('[data-hash]').forEach(btn => {

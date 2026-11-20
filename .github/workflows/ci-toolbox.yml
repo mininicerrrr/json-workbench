@@ -37,4 +37,5 @@ jobs:
           CI: 'true'
           ARTIFACT_DIR: /tmp/artifacts
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
           STATIC_PORT: '5299'

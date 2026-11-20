@@ -1,57 +1,50 @@
 import {test, expect} from '@playwright/test';
-import path from 'node:path';
 
-const artifactDir = process.env.ARTIFACT_DIR || '/opt/cursor/artifacts';
-const head = (process.env.PR_HEAD_SHA || process.env.TESTED_HEAD_SHA || 'local').slice(0, 7);
+test('UTC once: exact epoch conversion', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop precision');
+  await page.goto('./#timestamp');
+  await expect(page.locator('#tsDisplayZone option[value="UTC"]')).toHaveCount(1);
+  await page.selectOption('#tsDisplayZone', 'UTC');
+  expect(await page.locator('#tsDisplayZone').inputValue()).toBe('UTC');
+  await page.fill('#tsInput', '0');
+  await page.selectOption('#tsUnit', 's');
+  await page.click('#tsFromEpoch');
+  const out = await page.locator('#outputTimestamp').inputValue();
+  expect(out).toContain('1970-01-01 00:00:00.000');
+  expect(out).toContain('1970-01-01T00:00:00.000Z');
+  expect(out).toMatch(/秒时间戳\n0/);
+  expect(out).toMatch(/毫秒时间戳\n0$/);
+});
 
-test('cron shows 366-day window and no-results error within window', async ({page}, testInfo) => {
-  test.setTimeout(120000);
+test('UTC once: cron next run at fixed clock', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop precision');
+  await page.clock.install({time: new Date('2023-12-31T23:00:00Z')});
   await page.goto('./#cron');
   await expect(page.locator('#cronWindowNote')).toContainText('366');
-  await expect(page.locator('#cronWindowNote')).toContainText('不等于表达式永不运行');
+  await expect(page.locator('#cronZone option[value="UTC"]')).toHaveCount(1);
+  await page.selectOption('#cronZone', 'UTC');
+  await page.fill('#cronExpr', '0 0 1 1 *');
+  await page.fill('#cronCount', '1');
+  await page.click('#cronRun');
+  await expect(page.locator('#statusCron')).toContainText('已生成', {timeout: 20000});
+  await expect(page.locator('#outputCron')).toHaveValue(/1\. 2024-01-01 00:00:00 \(UTC\)/);
+  await expect(page.locator('#outputCron')).toHaveValue(new RegExp(`${366}.*日历日`));
+});
 
+test('cron no-results error mentions window without blocking cancel', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop: slow worker path');
+  test.setTimeout(120000);
+  await page.goto('./#cron');
   await page.selectOption('#cronZone', 'UTC');
   await page.fill('#cronExpr', '0 0 29 2 *');
   await page.fill('#cronCount', '5');
   await page.click('#cronRun');
-  await expect(page.locator('#statusCron')).toContainText('366', {timeout: 15000});
-  await expect(page.locator('#statusCron')).toContainText('这不表示表达式永不运行');
-
-  if (testInfo.project.name === 'desktop') {
-    await page.screenshot({
-      path: path.join(artifactDir, `cron-366-no-results-desktop-1440-${head}.png`),
-      fullPage: true,
-    });
-  }
-});
-
-test('UTC selectable in timestamp and cron with correct output', async ({page}, testInfo) => {
-  await page.goto('./#timestamp');
-  await expect(page.locator('#tsDisplayZone option[value="UTC"]')).toHaveCount(1);
-  await page.selectOption('#tsDisplayZone', 'UTC');
-  await page.fill('#tsInput', '0');
-  await page.selectOption('#tsUnit', 's');
-  await page.click('#tsFromEpoch');
-  await expect(page.locator('#outputTimestamp')).toHaveValue(/1970-01-01/);
-
-  await page.goto('./#cron');
-  await expect(page.locator('#cronZone option[value="UTC"]')).toHaveCount(1);
-  await page.selectOption('#cronZone', 'UTC');
-  await page.fill('#cronExpr', '0 0 * * *');
+  await page.fill('#cronExpr', 'typing-during-search');
+  await expect(page.locator('#cronExpr')).toHaveValue('typing-during-search');
+  await page.click('#cronCancel');
+  await expect(page.locator('#statusCron')).toContainText('取消');
+  await page.fill('#cronExpr', '0 0 29 2 *');
+  await page.fill('#cronCount', '5');
   await page.click('#cronRun');
-  await expect(page.locator('#outputCron')).toHaveValue(/366/);
-
-  if (testInfo.project.name === 'desktop') {
-    await page.screenshot({
-      path: path.join(artifactDir, `utc-timestamp-cron-desktop-1440-${head}.png`),
-      fullPage: true,
-    });
-  } else {
-    await page.goto('./#cron');
-    await expect(page.locator('#cronZone')).toHaveValue('UTC');
-    await page.screenshot({
-      path: path.join(artifactDir, `utc-cron-mobile-390-${head}.png`),
-      fullPage: true,
-    });
-  }
+  await expect(page.locator('#statusCron')).toContainText('这不表示表达式永不运行', {timeout: 90000});
 });

@@ -35,6 +35,15 @@ test('direct open and reload every tool hash', async ({page}) => {
       expect(wr.status()).toBe(200);
       await expect(page.locator('#status')).toContainText('完成', {timeout: 15000});
     }
+    if (id === 'cron') {
+      await page.fill('#cronExpr', '0 0 * * *');
+      await page.fill('#cronCount', '1');
+      const workerWait = page.waitForResponse(r => /cron-worker-.*\.js$/.test(r.url()), {timeout: 10000});
+      await page.click('#cronRun');
+      const wr = await workerWait;
+      expect(wr.status()).toBe(200);
+      await expect(page.locator('#statusCron')).toContainText(/已生成|Worker|366/, {timeout: 30000});
+    }
     if (id === 'regex') {
       await page.fill('#regexPattern', 'a');
       await page.fill('#regexText', 'a');

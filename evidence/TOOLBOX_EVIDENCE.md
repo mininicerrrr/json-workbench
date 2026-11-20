@@ -1,49 +1,59 @@
 # Toolbox evidence
 
-**Baseline SHA:** `9691cbe026a7a42a9cde0ba08334c2e844cba908`
+**Baseline:** `9691cbe026a7a42a9cde0ba08334c2e844cba908`
 
-**PR head (this closure):** `02940b8eebf65a1e5761d57e96b7c06f8b4414b4`
+**Earlier UI screenshots (pre–366/UTC/worker):** `f526c2f57a4ba8e45c34e8188806e361bd56d0f0` — historical only, not pixel-comparable to later heads.
 
-## Test counts (exact-head local runs)
+## Exact-head local verification
 
-Run on **PR head commit** (`git checkout <PR_HEAD_SHA>`), not GitHub merge ref alone.
+Checkout the PR branch tip, then:
 
 ```sh
 npm test
-# 54 unit/integration tests (as of QA closure commits)
+# 54 unit tests, 0 fail (Cron DST/OR/window assertions)
 
 npm run build && node scripts/static-routes.test.mjs
-# static-routes: ok
 
-PR_HEAD_SHA=$(git rev-parse HEAD) ARTIFACT_DIR=/opt/cursor/artifacts npm run test:browser
-# 18 Playwright cases → 16 executed per full run (2 project-gated screenshot skips), 0 failures
-# Strengthened assertions in privacy/static/cron-utc suites (independent QA: 64+ checks)
+SOURCE_SHA=$(git rev-parse HEAD) ARTIFACT_DIR=/opt/cursor/artifacts npm run test:browser
+# 30 Playwright registrations (15 cases × desktop/mobile projects)
+# Latest full run: 21 pass, 9 skipped (project-gated screenshots/precision)
 ```
 
-## CI identity (Toolbox)
+## Cron UX (release hold resolved in branch)
 
-- **`ci-toolbox.yml`** checks out **`github.event.pull_request.head.sha`** (PR branch tip).
-- **`pages.yml`** on PR still uses default merge ref (`GITHUB_SHA`); deploy job skipped on PR.
-- Step summary records: `CHECKOUT_SHA`, `PR_HEAD_SHA`, `GITHUB_SHA` (merge ref).
+- `nextRuns` runs in **`cron-worker.js`**; main thread shows running status + **取消搜索**.
+- **366-day** window unchanged; errors unchanged; cancel terminates Worker (no silent truncate).
+- Worst-case sparse search may take tens of seconds **in Worker** while UI remains interactive (see `cron-responsiveness.spec.js`).
 
-## Screenshots
+## CI checkout identity
 
-| Artifact | Viewport | When |
-|----------|----------|------|
-| `*-f526c2f.png` | 1440 / 390 | UI baseline from earlier head; still valid for unchanged chrome |
-| `cron-366-no-results-desktop-1440-<sha7>.png` | 1440×900 | Cron 366 disclosure + window error |
-| `utc-timestamp-cron-desktop-1440-<sha7>.png` | 1440×900 | UTC selected + outputs |
-| `utc-cron-mobile-390-<sha7>.png` | 390×844 | Cron UTC selected (mobile) |
+| Workflow | Checkout ref | Notes |
+|----------|----------------|-------|
+| `ci-toolbox.yml` | `github.event.pull_request.head.sha` | Step summary: `CHECKOUT_SHA`, `PR_HEAD_SHA`, `GITHUB_SHA` (merge ref) |
+| `pages.yml` (PR) | default merge ref | deploy skipped; `GITHUB_SHA` is merge commit, not PR tip |
 
-Local only under `/opt/cursor/artifacts/` unless CI copies to `/tmp/artifacts`.
+Do not infer byte-tested HEAD from API association alone — read Toolbox summary `CHECKOUT_SHA`.
 
-## Cron / timezone notes
+## Screenshots (exact-head only)
 
-- Preview searches **366 calendar days** from now (minute steps); UI `#cronWindowNote` + `CRON_SEMANTICS`.
-- Insufficient results: error states window limit, not “never runs”.
-- `listTimeZones()` always includes **UTC** (even if `Intl.supportedValuesOf` omits it).
+Capture after final commit:
 
-## Known limitations
+```sh
+chmod +x scripts/capture-qa-screenshots.sh
+ARTIFACT_DIR=/opt/cursor/artifacts ./scripts/capture-qa-screenshots.sh
+```
 
-- Cron: no `MON`, `L`, `W`, `#`; fold shows two UTC rows with same local label.
-- Privacy tests: address-bar share only; GET asset allowlist.
+Writes:
+
+- `SOURCE_SHA_MANIFEST-<full-git-sha>.txt`
+- `timestamp-utc-epoch0-desktop-1440-<full-sha>.png`
+- `cron-utc-results-366-desktop-1440-<full-sha>.png`
+- `cron-no-results-366-desktop-1440-<full-sha>.png`
+- `cron-utc-selected-mobile-390-<full-sha>.png`
+
+Local path: `/opt/cursor/artifacts/`. Do not reuse `21574fe` or `f526c2f` filenames for new heads.
+
+## UTC / Cron test precision
+
+- Timestamp: epoch `0` + `UTC` → `1970-01-01 00:00:00.000` wall + `1970-01-01T00:00:00.000Z`, counts `0`.
+- Cron: Playwright clock `2023-12-31T23:00Z`, `0 0 1 1 *` → `2024-01-01 00:00:00 (UTC)`; `#cronZone` / `#tsDisplayZone` each have exactly one `UTC` option.
