@@ -2,7 +2,7 @@
 
 **Baseline SHA:** `9691cbe026a7a42a9cde0ba08334c2e844cba908`
 
-**Evidence anchor:** run all commands below **after** checking out the final code commit recorded in git at evidence generation time (`git rev-parse HEAD`).
+**Tested code Head:** `f526c2f57a4ba8e45c34e8188806e361bd56d0f0` (run commands after checking out this commit).
 
 ## Commands and results (local agent run)
 
