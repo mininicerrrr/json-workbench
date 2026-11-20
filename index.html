@@ -1,1 +1,208 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="JSON Workbench：前端接口响应工作台。浏览器本地语义对比、JSON Pointer 路径脱敏、从样例推断 TypeScript，无需登录、不上传输入。"><meta name="theme-color" content="#f6f7fb"><title>JSON Workbench · 前端接口响应工作台</title></head><body><header class="wrap"><a class="brand" href="#compare"><b>{↔}</b><span>JSON Workbench<small>前端接口响应工作台</small></span></a><span class="privacy-dot">● 浏览器本地处理</span></header><main class="wrap"><section class="hero"><div class="eyebrow">OPEN SOURCE · LOCAL FIRST · MIT CODE</div><h1>从接口差异，到<span>可交付的类型。</span></h1><p>比较响应 → 定位变化 → 脱敏预览 → 生成 TypeScript。一个小而专注的前端工作流。</p></section><nav aria-label="工作流"><a href="#compare">01 <strong>语义对比</strong></a><a href="#redact">02 <strong>路径脱敏</strong></a><a href="#types">03 <strong>TypeScript</strong></a><a href="#utilities">＋ <strong>基础工具</strong></a></nav><section class="panel"><div class="heading"><div><span class="eyebrow" id="step">STEP 01 / COMPARE</span><h2 id="title">先找到真正的变化</h2><p id="description">忽略对象键顺序，数组按索引比较。每条变化都有 JSON Pointer。</p></div><button id="sample">加载示例</button></div><div class="toolbar"><button id="run" class="primary">比较差异 →</button><button id="cancel" hidden>取消处理</button><label class="file">导入左侧 JSON<input id="file" type="file" accept=".json,application/json"></label><button id="clear">清空当前输入与结果</button><span>单份 ≤ 1 MiB · 深度 ≤ 80</span></div><div id="jsonArea"><div class="editors"><section><label class="editor-label" for="a">当前样例 / 原始 JSON <small id="aCount">0 字符</small></label><textarea id="a" spellcheck="false" placeholder='{"id": 1, "name": "Alice"}'></textarea></section><section id="rightEditor"><label class="editor-label" for="b">对比样例 / 新响应 <small id="bCount">0 字符</small></label><textarea id="b" spellcheck="false" placeholder='{"id": 1, "name": "Bob"}'></textarea></section></div><div id="pathArea" hidden><label for="paths">要隐藏的字段：每行一个 JSON Pointer（精确路径，不支持通配符）</label><textarea id="paths" spellcheck="false" placeholder="/user/email&#10;/token"></textarea><p>例如 /a~1b 表示键 a/b；~ 转义为 ~0。预览不改动原输入；不存在的路径会报错，不会假装已脱敏。</p></div></div><section id="utilities" hidden><p>格式化与压缩使用上方左侧 JSON，也会执行严格校验。</p><div class="utility-buttons"><button data-action="format">JSON 格式化</button><button data-action="compact">JSON 压缩</button></div><label for="utilityInput">URL 组件 / 时间戳输入</label><textarea id="utilityInput" placeholder="输入文本或秒/毫秒时间戳"></textarea><div class="utility-buttons"><button id="encode">URL 编码</button><button id="decode">URL 解码</button><select id="unit" aria-label="时间戳单位"><option value="s">秒</option><option value="ms">毫秒</option></select><button id="timestamp">时间戳 → 日期</button><button id="now">当前时间</button></div><div class="utility-buttons"><label for="datetime">日期</label><input id="datetime" type="datetime-local" step="0.001"><select id="timezone" aria-label="日期时区"><option value="Asia/Shanghai">北京时间 UTC+8</option><option value="UTC">UTC</option></select><button id="toTimestamp">日期 → 时间戳</button></div><p>URL 使用 encodeURIComponent/decodeURIComponent，仅处理组件，+ 不视为空格。日期输入时区显式选择；时间戳结果同时显示北京时间及 UTC。</p></section><div id="status" role="status" aria-live="polite">准备就绪。内容不上传、不写入 URL 或浏览器存储。</div><section class="result-area"><div class="result-heading"><h3 id="resultTitle">处理结果</h3><div><button id="useResult">用结果作为新样例</button><button id="copy">复制结果</button><button id="download">下载结果</button></div></div><div id="diffResults"></div><textarea id="output" readonly spellcheck="false" placeholder="结果会显示在这里；对比时同时列出变化路径。"></textarea><p id="redactWarning" hidden>脱敏是辅助工具，不是安全保证。请检查预览中是否仍含其他敏感字段、数组元素或自由文本；确认后再复制、下载或分享。</p></section></section><section class="guide"><article><span>01 / SEMANTIC DIFF</span><h3>只看有意义的变化</h3><p>对象键顺序不同不算差异；数组按索引，不做智能匹配。新增、删除、修改分别标记，根路径显示为空字符串。最多展示 2,000 条差异，超出明确提示。</p></article><article><span>02 / SAFE PREVIEW</span><h3>先保护数据，再交接</h3><p>路径脱敏输出独立副本，不覆盖原始输入。重复键与不安全大整数会阻止处理；请把大整数作为字符串传入。小数仍使用 IEEE-754，非任意精度。</p></article><article><span>03 / SAMPLE TO TYPES</span><h3>类型起点，而非契约</h3><p>仅由当前单份样例推断 TypeScript；不推断可选字段、完整联合分支、日期格式或业务约束。生成结果必须人工审阅，不是 API schema。</p></article></section><section class="support"><div><h3>免费开源，小而专注。</h3><p>有帮助的话，欢迎自愿支持维护。无付费门槛，不设金额。</p></div><button id="support">♡ 支持维护</button></section><footer><span>JSON Workbench · 代码 MIT · 个人素材另行保留权利</span><button id="privacy">隐私与使用说明</button></footer></main><dialog id="supportDialog"><div class="dialog-top"><h2>感谢你的支持</h2><button data-close="supportDialog" aria-label="关闭支持窗口">×</button></div><p>完全自愿，不影响任何功能。本站非微信官方服务。</p><div id="supportContent"><p>此开源构建未配置收款码。所有工具仍可免费使用。</p></div><p>如展示收款码，请在微信核对收款人后自行决定是否付款。本站不处理支付、不获取付款信息、不确认支付完成。</p></dialog><dialog id="privacyDialog"><div class="dialog-top"><h2>隐私与边界</h2><button data-close="privacyDialog" aria-label="关闭说明窗口">×</button></div><p>输入只在当前浏览器内存及本地 Web Worker 中处理；不上传、不写入 URL、不使用 Cookie/localStorage。刷新会丢失内容。本站不添加统计、广告或外部追踪脚本。</p><p>静态托管方可能记录 IP 与访问时间等正常请求日志。请勿把浏览器工具视为安全审计或机密数据隔离环境。</p><p>单份 JSON 最大 1 MiB、深度 80，差异最多 2,000 条。任务超时可取消；数字为 JavaScript 精度，不安全整数和重复键阻止处理，不自动修复。脱敏仅覆盖指定精确路径，不保证检测全部秘密。</p><p>打赏完全自愿，支付由微信处理。代码采用 MIT，二维码、头像、收款名等个人素材不在 MIT 授权范围。开源默认不含收款码。</p></dialog><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" id="metaDescription" content="JSON Workbench：浏览器本地开发者工具箱。JSON、正则、JWT、Cron、时间戳、哈希；不上传输入。">
+<meta name="theme-color" content="#f6f7fb">
+<link rel="canonical" id="canonical" href="https://mininicerrrr.github.io/json-workbench/">
+<title id="docTitle">Developer Toolbox · JSON Workbench</title>
+</head>
+<body>
+<header class="wrap">
+  <a class="brand" href="#home"><b>{↔}</b><span>JSON Workbench<small>浏览器本地开发者工具箱</small></span></a>
+  <span class="privacy-dot">● 浏览器本地处理</span>
+</header>
+<main class="wrap">
+  <section class="hero" id="heroBlock">
+    <div class="eyebrow">OPEN SOURCE · LOCAL FIRST · MIT CODE</div>
+    <h1 id="heroTitle">从接口差异，到<span>可交付的类型。</span></h1>
+    <p id="heroLead">比较响应 → 定位变化 → 脱敏预览 → 生成 TypeScript；并附带正则、JWT、Cron、时间戳与哈希工具。</p>
+  </section>
+  <div class="layout-discover">
+    <aside class="discover" aria-label="工具发现">
+      <label class="sr-only" for="toolSearch">搜索工具</label>
+      <input id="toolSearch" type="search" placeholder="搜索工具…" autocomplete="off" spellcheck="false">
+      <div id="discoverList" class="discover-list"></div>
+    </aside>
+    <div class="main-column">
+      <nav aria-label="工作流" id="topNav"></nav>
+      <section class="panel" id="panelJson">
+        <div class="heading">
+          <div>
+            <span class="eyebrow" id="step">STEP 01 / COMPARE</span>
+            <h2 id="title">先找到真正的变化</h2>
+            <p id="description">忽略对象键顺序，数组按索引比较。每条变化都有 JSON Pointer。</p>
+          </div>
+          <button type="button" id="sample">加载示例</button>
+        </div>
+        <div class="toolbar">
+          <button type="button" id="run" class="primary">比较差异 →</button>
+          <button type="button" id="cancel" hidden>取消处理</button>
+          <label class="file">导入左侧 JSON<input id="file" type="file" accept=".json,application/json"></label>
+          <button type="button" id="clear">清空当前输入与结果</button>
+          <span>单份 ≤ 1 MiB · 深度 ≤ 80</span>
+        </div>
+        <div id="jsonArea">
+          <div class="editors">
+            <section>
+              <label class="editor-label" for="a">当前样例 / 原始 JSON <small id="aCount">0 字符</small></label>
+              <textarea id="a" spellcheck="false" placeholder='{"id": 1, "name": "Alice"}'></textarea>
+            </section>
+            <section id="rightEditor">
+              <label class="editor-label" for="b">对比样例 / 新响应 <small id="bCount">0 字符</small></label>
+              <textarea id="b" spellcheck="false" placeholder='{"id": 1, "name": "Bob"}'></textarea>
+            </section>
+          </div>
+          <div id="pathArea" hidden>
+            <label for="paths">要隐藏的字段：每行一个 JSON Pointer（精确路径，不支持通配符）</label>
+            <textarea id="paths" spellcheck="false" placeholder="/user/email&#10;/token"></textarea>
+            <p>例如 /a~1b 表示键 a/b；~ 转义为 ~0。预览不改动原输入；不存在的路径会报错。</p>
+          </div>
+        </div>
+        <section id="utilities" hidden>
+          <p>格式化与压缩使用上方左侧 JSON，也会执行严格校验。</p>
+          <div class="utility-buttons">
+            <button type="button" data-action="format">JSON 格式化</button>
+            <button type="button" data-action="compact">JSON 压缩</button>
+          </div>
+          <label for="utilityInput">URL 组件输入</label>
+          <textarea id="utilityInput" spellcheck="false" placeholder="输入文本进行 URL 组件编解码"></textarea>
+          <div class="utility-buttons">
+            <button type="button" id="encode">URL 编码</button>
+            <button type="button" id="decode">URL 解码</button>
+          </div>
+          <p>URL 使用 encodeURIComponent/decodeURIComponent；+ 不视为空格。</p>
+        </section>
+        <div id="status" role="status" aria-live="polite">准备就绪。内容不上传、不写入 URL 或浏览器存储。</div>
+        <section class="result-area">
+          <div class="result-heading">
+            <h3 id="resultTitle">处理结果</h3>
+            <div>
+              <button type="button" id="useResult">用结果作为新样例</button>
+              <button type="button" id="copy">复制结果</button>
+              <button type="button" id="download">下载结果</button>
+            </div>
+          </div>
+          <div id="diffResults"></div>
+          <textarea id="output" readonly spellcheck="false" placeholder="结果会显示在这里"></textarea>
+          <p id="redactWarning" hidden>脱敏是辅助工具，不是安全保证。请检查预览中是否仍含其他敏感字段后再分享。</p>
+        </section>
+      </section>
+      <section class="panel tool-panel" id="panelHome" hidden>
+        <div class="heading">
+          <div>
+            <span class="eyebrow">DISCOVER</span>
+            <h2>工具总览</h2>
+            <p>所有数据处理默认仅在浏览器完成。分享链接仅包含工具名（hash），不包含你的输入。</p>
+          </div>
+        </div>
+        <div id="homeCategories" class="home-grid"></div>
+      </section>
+      <section class="panel tool-panel" id="panelTimestamp" hidden>
+        <div class="heading"><div><span class="eyebrow">TIME</span><h2>时间戳与时区</h2><p>单位（秒/毫秒）与 IANA 时区（含 UTC）显式选择；无效日期与 DST 跳时会报错。</p></div></div>
+        <label for="tsInput">时间戳或文本</label>
+        <textarea id="tsInput" spellcheck="false" placeholder="1704067200"></textarea>
+        <div class="utility-buttons">
+          <select id="tsUnit" aria-label="时间戳单位"><option value="s">秒</option><option value="ms">毫秒</option></select>
+          <select id="tsDisplayZone" aria-label="显示时区"></select>
+          <button type="button" id="tsFromEpoch" class="primary">时间戳 → 日期</button>
+          <button type="button" id="tsNow">当前时间</button>
+        </div>
+        <div class="utility-buttons">
+          <label for="tsDatetime">本地日期时间</label>
+          <input id="tsDatetime" type="datetime-local" step="0.001">
+          <select id="tsSourceZone" aria-label="源时区"></select>
+          <button type="button" id="tsToEpoch">日期 → 时间戳</button>
+        </div>
+        <div id="statusTimestamp" class="substatus" role="status"></div>
+        <textarea id="outputTimestamp" readonly spellcheck="false" class="tool-output"></textarea>
+      </section>
+      <section class="panel tool-panel" id="panelRegex" hidden>
+        <div class="heading"><div><span class="eyebrow">REGEX</span><h2>正则测试</h2><p>在 Worker 中执行；3 秒超时将终止 Worker，可立即再次运行。</p></div></div>
+        <label for="regexPattern">模式（不含首尾斜杠）</label>
+        <input id="regexPattern" type="text" spellcheck="false" placeholder="(\\d+)" autocomplete="off">
+        <div class="utility-buttons">
+          <label for="regexFlags">标志</label>
+          <input id="regexFlags" type="text" value="u" maxlength="8" aria-label="正则标志">
+          <label><input type="checkbox" id="regexGlobal"> 全局匹配 (g)</label>
+          <button type="button" id="regexRun" class="primary">运行测试</button>
+          <button type="button" id="regexCancel" hidden>超时/取消</button>
+        </div>
+        <label for="regexText">待测文本</label>
+        <textarea id="regexText" spellcheck="false"></textarea>
+        <p class="hint-inline">输入 ≤ 256 KiB · 最多 500 条匹配。灾难性回溯可能触发超时终止。</p>
+        <div id="statusRegex" class="substatus" role="status"></div>
+        <textarea id="outputRegex" readonly spellcheck="false" class="tool-output"></textarea>
+      </section>
+      <section class="panel tool-panel" id="panelJwt" hidden>
+        <div class="jwt-banner" role="note">
+          <strong>不验证签名</strong> — 解码内容不可信，不能用于身份认证。本站仅做结构查看。
+        </div>
+        <div class="heading"><div><span class="eyebrow">JWT</span><h2>JWT 解码（只读）</h2><p>不验证签名、不联网验签；请勿粘贴生产密钥或真实会话到不可信环境。</p></div></div>
+        <label for="jwtInput">JWT</label>
+        <textarea id="jwtInput" spellcheck="false" placeholder="eyJhbGciOiJub25lIn0...."></textarea>
+        <button type="button" id="jwtDecode" class="primary">解码</button>
+        <div id="statusJwt" class="substatus" role="status"></div>
+        <textarea id="outputJwt" readonly spellcheck="false" class="tool-output"></textarea>
+        <p class="jwt-footer-note">再次提醒：未验证签名的 JWT 可被任意伪造，不构成 authentication。</p>
+      </section>
+      <section class="panel tool-panel" id="panelCron" hidden>
+        <div class="heading"><div><span class="eyebrow">CRON</span><h2>Cron 解释与下次运行</h2><p>五字段 Unix 风格；日时/周字段的“或”语义见下方说明。</p></div></div>
+        <p id="cronWindowNote" class="hint-inline cron-window-note">下次运行预览从当前时刻起，<strong>最多搜索未来 366 个日历日</strong>。窗口内找不到足够次数不等于表达式永不运行。</p>
+        <label for="cronExpr">表达式</label>
+        <input id="cronExpr" type="text" spellcheck="false" placeholder="0 9 * * 1-5" autocomplete="off">
+        <div class="utility-buttons">
+          <select id="cronZone" aria-label="Cron 时区"></select>
+          <label for="cronCount">预览次数</label>
+          <input id="cronCount" type="number" min="1" max="20" value="5" style="width:4rem">
+          <button type="button" id="cronRun" class="primary">解释并预览</button>
+          <button type="button" id="cronCancel" hidden>取消搜索</button>
+        </div>
+        <div id="statusCron" class="substatus" role="status"></div>
+        <textarea id="outputCron" readonly spellcheck="false" class="tool-output"></textarea>
+      </section>
+      <section class="panel tool-panel" id="panelHash" hidden>
+        <div class="heading"><div><span class="eyebrow">HASH</span><h2>哈希与 UUID</h2><p>SHA 使用 Web Crypto；UUID v4 使用加密安全随机源。</p></div></div>
+        <label for="hashInput">文本</label>
+        <textarea id="hashInput" spellcheck="false"></textarea>
+        <div class="utility-buttons">
+          <button type="button" data-hash="SHA-256">SHA-256</button>
+          <button type="button" data-hash="SHA-384">SHA-384</button>
+          <button type="button" data-hash="SHA-512">SHA-512</button>
+          <button type="button" id="uuidGen">生成 UUID v4</button>
+          <button type="button" id="uuidValidate">校验 UUID 格式</button>
+        </div>
+        <div id="statusHash" class="substatus" role="status"></div>
+        <textarea id="outputHash" readonly spellcheck="false" class="tool-output"></textarea>
+      </section>
+      <section class="guide" id="guideSection">
+        <article><span>01 / SEMANTIC DIFF</span><h3>只看有意义的变化</h3><p>对象键顺序不同不算差异；数组按索引比较。</p></article>
+        <article><span>02 / SAFE PREVIEW</span><h3>先保护数据，再交接</h3><p>路径脱敏输出独立副本，不覆盖原始输入。</p></article>
+        <article><span>03 / SAMPLE TO TYPES</span><h3>类型起点，而非契约</h3><p>仅由当前单份样例推断 TypeScript。</p></article>
+      </section>
+      <section class="support">
+        <div><h3>免费开源，小而专注。</h3><p>有帮助的话，欢迎自愿支持维护。无付费门槛。</p></div>
+        <button type="button" id="support">♡ 支持维护</button>
+      </section>
+      <footer>
+        <span>JSON Workbench · 代码 MIT · 个人素材另行保留权利</span>
+        <button type="button" id="privacy">隐私与使用说明</button>
+      </footer>
+    </div>
+  </div>
+</main>
+<dialog id="supportDialog">
+  <div class="dialog-top"><h2>感谢你的支持</h2><button type="button" data-close="supportDialog" aria-label="关闭">×</button></div>
+  <p>完全自愿，不影响任何功能。</p>
+  <div id="supportContent"><p>此开源构建未配置收款码。所有工具仍可免费使用。</p></div>
+</dialog>
+<dialog id="privacyDialog">
+  <div class="dialog-top"><h2>隐私与边界</h2><button type="button" data-close="privacyDialog" aria-label="关闭">×</button></div>
+  <p>输入只在当前浏览器内存及本地 Worker 中处理；不上传、不写入 URL、不使用 Cookie/localStorage。hash 路由仅保存工具名。</p>
+  <p>JWT 与正则等工具同样本地处理；分享链接不会携带你的输入。</p>
+</dialog>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

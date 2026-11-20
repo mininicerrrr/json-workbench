@@ -1,0 +1,41 @@
+name: Toolbox QA (no deploy)
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head (not merge ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Record checkout identity
+        run: |
+          echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "PR_HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+          echo "GITHUB_SHA=${{ github.sha }}" >> "$GITHUB_ENV"
+          {
+            echo "## CI checkout identity"
+            echo "- CHECKOUT_SHA: $(git rev-parse HEAD)"
+            echo "- PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}"
+            echo "- GITHUB_SHA (merge ref): ${{ github.sha }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: node scripts/static-routes.test.mjs
+      - run: npx --yes playwright install chromium
+      - run: npm run test:browser
+        env:
+          CI: 'true'
+          ARTIFACT_DIR: /tmp/artifacts
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          STATIC_PORT: '5299'

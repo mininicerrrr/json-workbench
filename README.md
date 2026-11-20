@@ -25,7 +25,7 @@ npm run preview
 1. **语义对比**：粘贴两份或导入左侧 JSON；忽略对象键顺序，数组按索引比较（不是按 id 匹配）。新增/删除/修改带 RFC 6901 JSON Pointer；空字符串表示根路径。
 2. **路径脱敏**：每行一个精确 Pointer，例如 `/user/email`、`/items/0/token`。`~` 写作 `~0`，`/` 写作 `~1`；不支持通配符。路径不存在会报错。输入不会自动改动；检查结果后可手动“用结果作为新样例”。空行忽略，UI 不支持根路径脱敏。
 3. **TypeScript**：从当前左侧样例生成 `ApiResponse`。只推断当前样例可见的基本类型、对象和数组联合，不推断可选字段或完整 schema。建议先脱敏再生成，必须人工审阅。
-4. **基础工具**：严格 JSON 格式化/压缩、URL 组件编解码、显式北京时间/UTC 的秒毫秒时间戳双向转换。URL 不是整站 URL 编码器，+ 不作为空格解码。
+4. **基础与扩展工具**（hash 直达）：JSON/URL、IANA 时区时间戳、正则测试（Worker 可超时）、JWT 只读解码（不验签）、Cron 预览、SHA/UUID。URL 组件编解码；+ 不作为空格解码。
 
 ## 安全与限制
 
@@ -40,7 +40,7 @@ npm run preview
 
 ## GitHub Pages
 
-`vite.config.js` 的 `base: '/json-workbench/'` 全面用于构建资源、Worker 与可选收款码路径。使用固定 hash 路由（`#compare`/`#redact`/`#types`/`#utilities`），不要求 history fallback，刷新子功能不应 404。
+`vite.config.js` 的 `base: '/json-workbench/'` 全面用于构建资源、Worker 与可选收款码路径。使用固定 hash 路由（如 `#compare`、`#jwt`、`#regex`、`#cron` 等），不要求 history fallback，刷新子功能不应 404。
 
 1. 仓库为 `mininicerrrr/json-workbench`、默认分支 `main`（由所有者创建/授权；本代码包不自行建仓）。
 2. Settings → Pages → Source 选择 **GitHub Actions**。
