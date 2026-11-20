@@ -15,6 +15,7 @@ const REGEX_TIMEOUT_MS = 3000;
 let mode = 'compare';
 let worker = null;
 let regexWorker = null;
+let regexWorkerGeneration = 0;
 let timer = null;
 let regexTimer = null;
 let nextId = 0;
@@ -68,9 +69,16 @@ function stop() {
   busy(false);
 }
 
-function stopRegex() {
-  if (regexWorker) regexWorker.terminate();
-  regexWorker = null;
+function stopRegex(outcome = 'idle') {
+  if (regexWorker) {
+    regexWorker.terminate();
+    regexWorker = null;
+    document.documentElement.dataset.regexWorkerPhase = outcome === 'idle' ? 'idle' : 'terminated';
+  } else if (outcome !== 'idle') {
+    document.documentElement.dataset.regexWorkerPhase = outcome;
+  } else {
+    document.documentElement.dataset.regexWorkerPhase = 'idle';
+  }
   clearTimeout(regexTimer);
   regexActiveId = 0;
   $('regexRun').disabled = false;
@@ -114,6 +122,7 @@ function route() {
     resetResult();
   }
   mode = resolved;
+  document.documentElement.dataset.activeTool = mode;
   applySeo(mode);
   document.querySelectorAll('.tool-panel, #panelJson').forEach(p => { p.hidden = true; });
   const panel = $(panelFor(mode));
@@ -426,10 +435,14 @@ function runRegexJob() {
   subStatus('statusRegex', 'Worker 执行中…');
   try {
     regexWorker = new Worker(new URL('./regex-worker.js', import.meta.url), {type: 'module'});
+    regexWorkerGeneration += 1;
+    document.documentElement.dataset.regexWorkerGeneration = String(regexWorkerGeneration);
+    document.documentElement.dataset.regexWorkerPhase = 'running';
     const id = ++regexActiveId;
     regexWorker.onmessage = e => {
       if (e.data.id !== id) return;
-      stopRegex();
+      if (e.data.lifecycle === 'started') return;
+      stopRegex('idle');
       if (e.data.error) subStatus('statusRegex', e.data.error, 'error');
       else {
         $('outputRegex').value = e.data.result;
@@ -437,12 +450,12 @@ function runRegexJob() {
       }
     };
     regexWorker.onerror = () => {
-      stopRegex();
+      stopRegex('terminated');
       subStatus('statusRegex', 'Worker 错误。', 'error');
     };
     regexWorker.postMessage({id, pattern, flags, text, global: $('regexGlobal').checked});
     regexTimer = setTimeout(() => {
-      stopRegex();
+      stopRegex('terminated');
       $('outputRegex').value = '';
       subStatus('statusRegex', '超过 3 秒已终止 Worker；可立即再次运行。', 'error');
     }, REGEX_TIMEOUT_MS);
@@ -453,7 +466,7 @@ function runRegexJob() {
 }
 
 $('regexRun').onclick = runRegexJob;
-$('regexCancel').onclick = () => { stopRegex(); subStatus('statusRegex', '已取消；可再次运行。'); };
+$('regexCancel').onclick = () => { stopRegex('terminated'); subStatus('statusRegex', '已取消；可再次运行。'); };
 
 $('jwtDecode').onclick = () => {
   try {

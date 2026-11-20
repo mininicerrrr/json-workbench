@@ -13,6 +13,21 @@ test('local to epoch Shanghai vs UTC', () => {
   assert.equal(a, b);
 });
 
-test('invalid date rejected', () => {
+test('invalid calendar date rejected', () => {
   assert.throws(() => localToEpoch('2023-02-29T12:00', 'UTC'));
+});
+
+test('second timestamp overflow guard', () => {
+  assert.throws(() => fromEpoch('99999999999999999', 's'), /过大|范围|安全/);
+});
+
+test('DST spring-forward gap in New York is rejected', () => {
+  assert.throws(
+    () => localToEpoch('2024-03-10T02:30', 'America/New_York'),
+    /不存在|无法/,
+  );
+});
+
+test('millisecond vs second output units', () => {
+  assert.match(fromEpoch('1000', 'ms', 'UTC'), /秒时间戳\n1\n/);
 });

@@ -22,3 +22,5 @@ jobs:
         env:
           CI: 'true'
           ARTIFACT_DIR: /tmp/artifacts
+          TESTED_HEAD_SHA: ${{ github.sha }}
+          STATIC_PORT: '5299'

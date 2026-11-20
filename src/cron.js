@@ -45,6 +45,12 @@ export function parseCron(expression) {
   const fields = raw.split(/\s+/);
   if (fields.length !== 5) throw new Error('须为 5 个字段（分 时 日 月 周）。');
   const [min, hour, dom, mon, dow] = fields;
+  if (/^31$/.test(dom.trim()) && /^2$/.test(mon.trim())) {
+    throw new Error('2 月没有 31 日，表达式不可满足。');
+  }
+  if (/^30$/.test(dom.trim()) && /^2$/.test(mon.trim())) {
+    throw new Error('2 月没有 30 日，表达式不可满足（仅闰年有 29 日）。');
+  }
   const matchers = [
     parseField(min, 0, 59, false),
     parseField(hour, 0, 23, false),
